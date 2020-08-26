@@ -512,7 +512,7 @@ class DataMCHistogramPlot(HistogramPlot):
                 sum_color=plot_style.KITColors.kit_purple,
                 draw_legend: bool = True,
                 legend_inside: bool = True,
-                ):
+                significance: bool = True):
         bin_edges, bin_mids, bin_width = self._get_bin_edges()
 
         self._bin_edges = bin_edges
@@ -578,18 +578,29 @@ class DataMCHistogramPlot(HistogramPlot):
                 ax1.set_ylim(ylims[0], 1.4 * ylims[1])
             else:
                 ax1.legend(frameon=False, bbox_to_anchor=(1, 1))
+        
+        if significance:
+            ax2.set_ylabel(r"$\frac{\mathrm{Data - MC}}{\sqrt{\mathrm{Data}^2+\mathrm{MC}^2}}$")
+            ax2.set_xlabel(self._variable.x_label, plot_style.xlabel_pos)
+            ax2.set_ylim((-1, 1))
+        else:
+            ax2.set_ylabel(r"$\frac{\mathrm{Data - MC}}{\mathrm{Data}}$")
+            ax2.set_xlabel(self._variable.x_label, plot_style.xlabel_pos)
+            ax2.set_ylim((-1, 1))
 
-        ax2.set_ylabel(r"$\frac{\mathrm{Data - MC}}{\mathrm{Data}}$")
-        ax2.set_xlabel(self._variable.x_label, plot_style.xlabel_pos)
-        ax2.set_ylim((-1, 1))
 
         try:
             uhdata = unp.uarray(hdata, np.sqrt(hdata))
             uhmc = unp.uarray(sum_w, np.sqrt(sum_w2))
             ratio = (uhdata - uhmc) / uhdata
+            sig = (uhdata - uhmc) / ((uhdata**2 + uhmc**2)**(0.5))
 
             ax2.axhline(y=0, color=plot_style.KITColors.dark_grey, alpha=0.8)
-            ax2.errorbar(bin_mids, unp.nominal_values(ratio), yerr=unp.std_devs(ratio),
+            if significance:
+                ax2.errorbar(bin_mids, unp.nominal_values(sig), yerr=unp.std_devs(sig),
+                         ls="", marker=".", color=plot_style.KITColors.kit_black)
+            else:
+                ax2.errorbar(bin_mids, unp.nominal_values(ratio), yerr=unp.std_devs(ratio),
                          ls="", marker=".", color=plot_style.KITColors.kit_black)
         except ZeroDivisionError:
             ax2.axhline(y=0, color=plot_style.KITColors.dark_grey, alpha=0.8)
